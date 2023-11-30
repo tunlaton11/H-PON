@@ -2,8 +2,9 @@ import math
 from operator import mul
 from functools import reduce
 import torch.nn as nn
+from typing import Literal
 
-from .pyramid import PyramidOccupancyNetwork
+from .pyramid import PyramidOccupancyNetwork, HorizontallyAwarePyramidOccupancyNetwork
 from .ved import VariationalEncoderDecoder
 from .vpn import VPNModel
 from .criterion import OccupancyCriterion, VaeOccupancyCriterion, \
@@ -11,15 +12,18 @@ from .criterion import OccupancyCriterion, VaeOccupancyCriterion, \
 
 from ..nn.fpn import FPN50
 from ..nn.topdown import TopdownNetwork
-from ..nn.pyramid import TransformerPyramid
+from ..nn.v_transformer_pyramid import VerticalTransformerPyramid
+from ..nn.h_transformer_pyramid import HorizontalTransformerPyramid
 from ..nn.classifier import LinearClassifier, BayesianClassifier
 
 
 
 def build_model(model_name, config):
 
-    if model_name == 'pyramid':
+    if model_name == 'pon':
         model = build_pyramid_occupancy_network(config)
+    elif model_name == 'hpon':
+        model = build_horizontally_aware_pyramid_occupancy_network(config, htfm_method='stack')
     elif model_name == 'ved':
         model = build_variational_encoder_decoder(config)
     elif model_name == 'vpn':
@@ -67,12 +71,12 @@ def build_pyramid_occupancy_network(config):
 
     # Build transformer pyramid
     tfm_resolution = config.map_resolution * reduce(mul, config.topdown.strides)
-    transformer = TransformerPyramid(256, config.tfm_channels, tfm_resolution,
+    transformer = VerticalTransformerPyramid(256, config.vtfm_channels, tfm_resolution,
                                      config.map_extents, config.ymin, 
                                      config.ymax, config.focal_length)
 
     # Build topdown network
-    topdown = TopdownNetwork(config.tfm_channels, config.topdown.channels,
+    topdown = TopdownNetwork(config.vtfm_channels, config.topdown.channels,
                              config.topdown.layers, config.topdown.strides,
                              config.topdown.blocktype)
     
@@ -85,6 +89,56 @@ def build_pyramid_occupancy_network(config):
     
     # Assemble Pyramid Occupancy Network
     return PyramidOccupancyNetwork(frontend, transformer, topdown, classifier)
+
+
+def build_horizontally_aware_pyramid_occupancy_network(config, htfm_method: Literal["collage", "stack", "multiscale"]):
+
+    # Build frontend
+    frontend = FPN50()
+
+    # Build transformer pyramid
+    tfm_resolution = config.map_resolution * reduce(mul, config.topdown.strides)
+
+
+    v_transformer = VerticalTransformerPyramid(
+        256,
+        config.vtfm_channels,
+        tfm_resolution,
+        config.map_extents,
+        config.ymin,
+        config.ymax,
+        config.focal_length,
+    )
+
+    h_transformer = HorizontalTransformerPyramid(
+        256,
+        config.vtfm_channels,
+        config.htfm_channels,
+        tfm_resolution,
+        config.map_extents,
+        config.ymin,
+        config.ymax,
+        config.focal_length,
+        config.img_size[0],
+        htfm_method,
+    )
+
+    # Build topdown network
+    topdown = TopdownNetwork(config.vtfm_channels + config.htfm_channels, config.topdown.channels,
+                             config.topdown.layers, config.topdown.strides,
+                             config.topdown.blocktype)
+    
+    # Build classifier
+    if config.bayesian:
+        classifier = BayesianClassifier(topdown.out_channels, config.num_class)
+    else:
+        classifier = LinearClassifier(topdown.out_channels, config.num_class)
+    classifier.initialise(config.prior)
+    
+    # Assemble Pyramid Occupancy Network
+    return HorizontallyAwarePyramidOccupancyNetwork(frontend, v_transformer, h_transformer, topdown, classifier)
+
+
 
 
 
