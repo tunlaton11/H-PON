@@ -54,7 +54,7 @@ def train(dataloader, model, criterion, optimiser, summary, config, epoch):
 
         # Update confusion matrix
         scores = logits.cpu().sigmoid()  
-        confusion.update(scores > config.score_thresh, labels, mask)
+        confusion.update(scores > config.score_thresh, labels.cpu(), mask.cpu())
 
         # Update tensorboard
         if i % config.log_interval == 0:
@@ -103,7 +103,7 @@ def evaluate(dataloader, model, criterion, summary, config, epoch):
 
         # Update confusion matrix
         scores = logits.cpu().sigmoid()  
-        confusion.update(scores > config.score_thresh, labels, mask)
+        confusion.update(scores > config.score_thresh, labels.cpu(), mask.cpu())
 
         # Update tensorboard
         if i % config.log_interval == 0:
@@ -266,8 +266,8 @@ def main():
                         help='optional tag to identify the run')
     parser.add_argument('--dataset', choices=['nuscenes', 'argoverse'],
                         default='nuscenes', help='dataset to train on')
-    parser.add_argument('--model', choices=['pyramid', 'vpn', 'ved'],
-                        default='pyramid', help='model to train')
+    parser.add_argument('--model', choices=['pon', 'hpon', 'vpn', 'ved'],
+                        default='pon', help='model to train')
     parser.add_argument('--experiment', default='test', 
                         help='name of experiment config to load')
     parser.add_argument('--resume', default=None, 
