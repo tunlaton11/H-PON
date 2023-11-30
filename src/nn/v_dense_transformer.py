@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 from .resampler import Resampler
 
-class DenseTransformer(nn.Module):
+class VerticalDenseTransformer(nn.Module):
 
     def __init__(self, in_channels, channels, resolution, grid_extents, 
                  ymin, ymax, focal_length, groups=1):

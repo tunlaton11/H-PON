@@ -2,9 +2,9 @@ import math
 import torch
 import torch.nn as nn
 
-from .transformer import DenseTransformer
+from .v_dense_transformer import VerticalDenseTransformer
 
-class TransformerPyramid(nn.Module):
+class VerticalTransformerPyramid(nn.Module):
 
     def __init__(self, in_channels, channels, resolution, extents, ymin, ymax, 
                  focal_length):
@@ -21,7 +21,7 @@ class TransformerPyramid(nn.Module):
             zmin = math.floor(focal) * resolution if i < 4 else extents[1]
             subset_extents = [extents[0], zmin, extents[2], zmax]
             # Build transformers
-            tfm = DenseTransformer(in_channels, channels, resolution, 
+            tfm = VerticalDenseTransformer(in_channels, channels, resolution, 
                                    subset_extents, ymin, ymax, focal)
             self.transformers.append(tfm)
     
