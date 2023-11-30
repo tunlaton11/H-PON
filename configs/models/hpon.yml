@@ -1,5 +1,6 @@
-model: pyramid
-tfm_channels: 64
+model: hpon
+vtfm_channels: 64
+htfm_channels: 64
 ymin: -2
 ymax: 4
 focal_length: 630.

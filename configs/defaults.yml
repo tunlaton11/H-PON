@@ -3,7 +3,8 @@
 ### Training options ###
 
 # IDs of GPUs to use during training
-gpus: [0, 2, 3, 4]
+# gpus: [0, 2, 3, 4]
+gpus: [0]
 
 # Number of examples per mini-batch
 batch_size: 12
@@ -111,8 +112,11 @@ vis_interval: 200
 # Architecture to train [pyramid | ved | vpn ]
 model: pyramid
 
-# Number of intermediate channels in the transformer layer
-tfm_channels: 64
+# Number of intermediate channels in the vertical transformer layer
+vtfm_channels: 64
+
+# Number of intermediate channels in the horizontal transformer layer
+htfm_channels: 64
 
 # Vertical extents of the region of interest, in meters
 ymin: -2
